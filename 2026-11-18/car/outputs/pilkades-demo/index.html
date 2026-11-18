@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#155e45">
+  <title>Simulasi Pilkades</title>
+  <style>
+    :root { color-scheme: light; --green:#155e45; --mint:#e8f3ee; --ink:#18231f; --muted:#64736c; }
+    * { box-sizing:border-box }
+    body { margin:0; font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif; color:var(--ink); background:#f4f7f5 }
+    header { background:var(--green); color:white; padding:24px 18px; text-align:center }
+    header h1 { margin:0; font-size:1.45rem }
+    header p { margin:6px 0 0; opacity:.88 }
+    main { width:min(760px,100% - 28px); margin:24px auto 48px }
+    .notice { padding:12px 14px; border-radius:12px; background:#fff4d6; color:#604a12; font-size:.92rem; margin-bottom:18px }
+    .card { background:white; border:1px solid #e2e9e5; border-radius:18px; padding:20px; box-shadow:0 8px 24px #173c2c0c }
+    .candidates { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px }
+    .candidate { border:1px solid #dce7e1; border-radius:16px; padding:18px; text-align:center }
+    .avatar { width:112px; height:112px; display:block; object-fit:cover; margin:0 auto 12px; border-radius:50%; background:var(--mint); border:3px solid white; box-shadow:0 0 0 1px #dce7e1 }
+    .candidate h2 { margin:0; font-size:1.15rem }
+    .candidate p { min-height:48px; color:var(--muted); margin:6px 0 14px; font-size:.92rem }
+    button { border:0; border-radius:10px; padding:11px 16px; background:var(--green); color:#fff; font:inherit; font-weight:650; cursor:pointer }
+    button:focus-visible, input:focus-visible { outline:3px solid #87c9aa; outline-offset:2px }
+    button.secondary { background:#e8efeb; color:var(--green) }
+    .result { margin-top:18px; padding:18px; border-radius:14px; background:var(--mint); display:none }
+    .result.show { display:block }
+    .result h2 { margin:0 0 4px }
+    .tools { margin-top:18px }
+    details summary { cursor:pointer; font-weight:650; color:var(--green) }
+    .qrbox { display:flex; gap:18px; align-items:center; flex-wrap:wrap; margin-top:12px }
+    #qrcode { min-width:180px; min-height:180px; display:grid; place-items:center; border:1px dashed #c9d8d0; border-radius:12px; padding:8px }
+    #qrcode img, #qrcode canvas { max-width:180px; height:auto }
+    input { width:min(420px,100%); padding:10px 12px; border:1px solid #cbd8d1; border-radius:9px; font:inherit }
+    .hint, footer { color:var(--muted); font-size:.88rem }
+    footer { margin-top:20px; text-align:center }
+    @media(max-width:520px) { .candidates { grid-template-columns:1fr } .candidate p { min-height:0 } }
+    @media print { header { background:white; color:var(--ink) } .notice,.candidates,.tools,footer { display:none!important } #print-qr { display:block!important } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Simulasi Pilkades Digital</h1>
+    <p>Pilih satu calon untuk mencoba alur simulasi</p>
+  </header>
+  <main>
+    <div class="notice"><strong>Demo saja.</strong> Pilihan hanya ditampilkan pada perangkat ini dan tidak dikirim atau dihitung sebagai hasil resmi.</div>
+    <section class="card" aria-label="Daftar calon">
+      <div class="candidates">
+        <article class="candidate">
+          <img class="avatar" src="siluet.svg" alt="Siluet foto calon 1">
+          <h2>Nama Calon 1</h2>
+          <p>Visi: pelayanan desa yang terbuka dan mudah dijangkau.</p>
+          <button type="button" data-candidate="Nama Calon 1">Pilih Calon 1</button>
+        </article>
+        <article class="candidate">
+          <img class="avatar" src="siluet.svg" alt="Siluet foto calon 2">
+          <h2>Nama Calon 2</h2>
+          <p>Visi: lingkungan desa yang sehat, aman, dan rukun.</p>
+          <button type="button" data-candidate="Nama Calon 2">Pilih Calon 2</button>
+        </article>
+      </div>
+      <div id="result" class="result" role="status" aria-live="polite"></div>
+      <div id="confirm" hidden style="margin-top:16px">
+        <p id="confirm-text"></p>
+        <button type="button" id="confirm-button">Konfirmasi pilihan</button>
+        <button type="button" class="secondary" id="cancel-button">Batal</button>
+      </div>
+    </section>
+    <section class="card tools">
+      <details>
+        <summary>Buat QR untuk membuka halaman ini</summary>
+        <p class="hint">Setelah situs diterbitkan di GitHub Pages, QR akan memakai alamat halaman yang sedang dibuka. Kamu juga bisa menempelkan alamat GitHub Pages di bawah.</p>
+        <label for="page-url">Alamat halaman</label><br>
+        <input id="page-url" type="url" placeholder="https://username.github.io/nama-repo/">
+        <button type="button" id="make-qr" style="margin-top:10px">Buat QR</button>
+        <div class="qrbox"><div id="qrcode">QR akan tampil di sini</div><span class="hint">Pindai QR dengan kamera ponsel untuk membuka halaman.</span></div>
+      </details>
+    </section>
+    <footer>Contoh untuk pembelajaran. Nama, visi, dan foto calon dapat diubah di file index.html.</footer>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    let pending = '';
+    const confirmBox = document.querySelector('#confirm');
+    document.querySelectorAll('[data-candidate]').forEach(button => button.addEventListener('click', () => {
+      pending = button.dataset.candidate;
+      document.querySelector('#confirm-text').textContent = `Kamu memilih ${pending}. Lanjutkan untuk melihat konfirmasi simulasi.`;
+      confirmBox.hidden = false;
+    }));
+    document.querySelector('#cancel-button').addEventListener('click', () => { pending = ''; confirmBox.hidden = true; });
+    document.querySelector('#confirm-button').addEventListener('click', () => {
+      if (!pending) return;
+      const result = document.querySelector('#result');
+      result.innerHTML = `<h2>Pilihan simulasi tercatat</h2><p>Kamu memilih <strong>${pending}</strong>. Ini hanya konfirmasi di perangkat ini.</p>`;
+      result.classList.add('show');
+      confirmBox.hidden = true;
+      document.querySelectorAll('[data-candidate]').forEach(button => button.disabled = true);
+      pending = '';
+    });
+    const urlInput = document.querySelector('#page-url');
+    if (location.protocol.startsWith('http')) urlInput.value = location.href.split('#')[0];
+    document.querySelector('#make-qr').addEventListener('click', () => {
+      const url = urlInput.value.trim();
+      const target = document.querySelector('#qrcode');
+      target.replaceChildren();
+      if (!/^https?:\/\//i.test(url)) { target.textContent = 'Masukkan alamat web lengkap (https://...)'; return; }
+      if (typeof QRCode === 'undefined') { target.textContent = 'Generator QR tidak termuat. Periksa koneksi internet lalu muat ulang.'; return; }
+      new QRCode(target, { text: url, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
+    });
+  </script>
+</body>
+</html>
